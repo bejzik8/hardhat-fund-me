@@ -9,20 +9,24 @@ error NotOwner();
 contract FundMe {
     using PriceConverter for uint256;
 
+    address public immutable i_owner;
+
     uint256 public constant MINIMUM_USD = 50 * 1e18;
 
     address[] public funders;
+
     mapping(address => uint256) public addressToAmountFunded;
 
-    address public immutable i_owner;
+    AggregatorV3Interface public priceFeed;
 
-    constructor() {
+    constructor(address priceFeedAddress) {
         i_owner = msg.sender;
+        priceFeed = AggregatorV3Interface(priceFeedAddress);
     }
 
     function fund() public payable {
         require(
-            msg.value.getConversionRate() >= MINIMUM_USD,
+            msg.value.getConversionRate(priceFeed) >= MINIMUM_USD,
             "Didn't send enough!"
         );
 
