@@ -1,12 +1,13 @@
 import { ethers, deployments, getNamedAccounts } from 'hardhat'
 import { FundMe, MockV3Aggregator } from '../../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-import { assert } from 'chai'
+import { assert, expect } from 'chai'
 
 describe('FundMe', () => {
     let fundMe: FundMe
     let mockV3Aggregator: MockV3Aggregator
     let deployer: SignerWithAddress
+    const sendValue = ethers.parseEther('1')
 
     beforeEach(async () => {
         const accounts = await ethers.getSigners()
@@ -28,6 +29,24 @@ describe('FundMe', () => {
             const mockAddress = await mockV3Aggregator.getAddress()
 
             assert.equal(response, mockAddress)
+        })
+    })
+
+    describe('fund', async () => {
+        it("fails if you don' send enough ETH", async () => {
+            await expect(fundMe.fund()).to.be.revertedWith(
+                "Didn't send enough ETH!"
+            )
+        })
+
+        it('updates the amount funded data structure', async () => {
+            await fundMe.fund({ value: sendValue })
+
+            const response = await fundMe.addressToAmountFunded(
+                deployer.address
+            )
+
+            assert.equal(response.toString(), sendValue.toString())
         })
     })
 })
