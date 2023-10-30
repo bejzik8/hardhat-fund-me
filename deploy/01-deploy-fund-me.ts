@@ -3,6 +3,7 @@ import { DeployFunction } from 'hardhat-deploy/types'
 import { network } from 'hardhat'
 
 import { developmentChains, networkConfig } from '../helper-hardhat.config'
+import verify from '../utils/verify'
 
 const deployFunction: DeployFunction = async function ({
     getNamedAccounts,
@@ -21,11 +22,21 @@ const deployFunction: DeployFunction = async function ({
         ethUsdPriceFeedAddress = networkConfig[chainId].ethUsdPriceFeed
     }
 
-    await deploy('FundMe', {
+    const args = [ethUsdPriceFeedAddress]
+
+    const fundMe = await deploy('FundMe', {
         from: deployer,
-        args: [ethUsdPriceFeedAddress],
-        log: true
+        args,
+        log: true,
+        waitConfirmations: 1
     })
+
+    if (
+        !developmentChains.includes(network.name) &&
+        process.env.ETHERSCAN_API_KEY
+    ) {
+        await verify(fundMe.address, args)
+    }
 
     log('---------------------------')
 }
