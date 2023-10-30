@@ -2,6 +2,7 @@ import { ethers, deployments, getNamedAccounts } from 'hardhat'
 import { FundMe, MockV3Aggregator } from '../../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import { assert, expect } from 'chai'
+import { ContractTransactionReceipt } from 'ethers'
 
 describe('FundMe', () => {
     let fundMe: FundMe
@@ -55,6 +56,50 @@ describe('FundMe', () => {
             const funder = await fundMe.funders(0)
 
             assert.equal(funder, deployer.address)
+        })
+    })
+
+    describe('withdraw', async () => {
+        beforeEach(async () => {
+            await fundMe.fund({ value: sendValue })
+        })
+
+        it('withdraw ETH from a single funder', async () => {
+            // Arrange
+
+            fundMe.connect(deployer)
+
+            const fundMeAddress = await fundMe.getAddress()
+
+            const startingFundMeBalance =
+                await ethers.provider.getBalance(fundMeAddress)
+
+            const startingDeployerBalance = await ethers.provider.getBalance(
+                deployer.address
+            )
+
+            // Act
+            const transactionResponse = await fundMe.withdraw()
+            const transactionReceipt = (await transactionResponse.wait(
+                1
+            )) as ContractTransactionReceipt
+
+            const { gasUsed, gasPrice } = transactionReceipt
+
+            const gasCost = gasUsed * gasPrice
+
+            const endingFundMeBalance =
+                await ethers.provider.getBalance(fundMeAddress)
+            const endingDeployerBalance = await ethers.provider.getBalance(
+                deployer.address
+            )
+
+            // Assert
+            assert.equal(endingFundMeBalance.toString(), '0')
+            assert.equal(
+                startingFundMeBalance + startingDeployerBalance,
+                endingDeployerBalance + gasCost
+            )
         })
     })
 })
