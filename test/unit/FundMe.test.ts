@@ -26,7 +26,7 @@ describe('FundMe', () => {
 
     describe('constructor', async () => {
         it('sets the aggregator addresses correctly', async () => {
-            const response = await fundMe.s_priceFeed()
+            const response = await fundMe.getPriceFeed()
             const mockAddress = await mockV3Aggregator.getAddress()
 
             assert.equal(response, mockAddress)
@@ -43,17 +43,17 @@ describe('FundMe', () => {
         it('updates the amount funded data structure', async () => {
             await fundMe.fund({ value: sendValue })
 
-            const response = await fundMe.s_addressToAmountFunded(
+            const response = await fundMe.getAddressToAmountFunded(
                 deployer.address
             )
 
             assert.equal(response.toString(), sendValue.toString())
         })
 
-        it('adds funder to array of s_funders', async () => {
+        it('adds funder to array of getFunder', async () => {
             await fundMe.fund({ value: sendValue })
 
-            const funder = await fundMe.s_funders(0)
+            const funder = await fundMe.getFunder(0)
 
             assert.equal(funder, deployer.address)
         })
@@ -102,7 +102,7 @@ describe('FundMe', () => {
             )
         })
 
-        it('allows us to withdraw with multiple s_funders', async () => {
+        it('allows us to withdraw with multiple getFunder', async () => {
             const accounts = await ethers.getSigners()
 
             for (let i = 1; i < 6; i++) {
@@ -143,12 +143,12 @@ describe('FundMe', () => {
                 endingDeployerBalance + gasCost
             )
 
-            await expect(fundMe.s_funders(0)).to.be.reverted
+            await expect(fundMe.getFunder(0)).to.be.reverted
 
             for (let i = 1; i < 6; i++) {
                 assert.equal(
                     (
-                        await fundMe.s_addressToAmountFunded(
+                        await fundMe.getAddressToAmountFunded(
                             accounts[i].address
                         )
                     ).toString(),
@@ -206,12 +206,12 @@ describe('FundMe', () => {
                 endingDeployerBalance + gasCost
             )
 
-            await expect(fundMe.s_funders(0)).to.be.reverted
+            await expect(fundMe.getFunder(0)).to.be.reverted
 
             for (let i = 1; i < 6; i++) {
                 assert.equal(
                     (
-                        await fundMe.s_addressToAmountFunded(
+                        await fundMe.getAddressToAmountFunded(
                             accounts[i].address
                         )
                     ).toString(),
