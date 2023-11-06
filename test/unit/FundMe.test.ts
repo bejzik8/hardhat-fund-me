@@ -26,7 +26,7 @@ describe('FundMe', () => {
 
     describe('constructor', async () => {
         it('sets the aggregator addresses correctly', async () => {
-            const response = await fundMe.priceFeed()
+            const response = await fundMe.s_priceFeed()
             const mockAddress = await mockV3Aggregator.getAddress()
 
             assert.equal(response, mockAddress)
@@ -43,17 +43,17 @@ describe('FundMe', () => {
         it('updates the amount funded data structure', async () => {
             await fundMe.fund({ value: sendValue })
 
-            const response = await fundMe.addressToAmountFunded(
+            const response = await fundMe.s_addressToAmountFunded(
                 deployer.address
             )
 
             assert.equal(response.toString(), sendValue.toString())
         })
 
-        it('adds funder to array of funders', async () => {
+        it('adds funder to array of s_funders', async () => {
             await fundMe.fund({ value: sendValue })
 
-            const funder = await fundMe.funders(0)
+            const funder = await fundMe.s_funders(0)
 
             assert.equal(funder, deployer.address)
         })
@@ -102,7 +102,7 @@ describe('FundMe', () => {
             )
         })
 
-        it('allows us to withdraw with multiple funders', async () => {
+        it('allows us to withdraw with multiple s_funders', async () => {
             const accounts = await ethers.getSigners()
 
             for (let i = 1; i < 6; i++) {
@@ -143,12 +143,14 @@ describe('FundMe', () => {
                 endingDeployerBalance + gasCost
             )
 
-            await expect(fundMe.funders(0)).to.be.reverted
+            await expect(fundMe.s_funders(0)).to.be.reverted
 
             for (let i = 1; i < 6; i++) {
                 assert.equal(
                     (
-                        await fundMe.addressToAmountFunded(accounts[i].address)
+                        await fundMe.s_addressToAmountFunded(
+                            accounts[i].address
+                        )
                     ).toString(),
                     '0'
                 )
@@ -161,6 +163,61 @@ describe('FundMe', () => {
             const attackerConnectedContract = await fundMe.connect(attacker)
 
             await expect(attackerConnectedContract.withdraw()).to.be.reverted
+        })
+
+        it('cheaperWithdraw testing...', async () => {
+            const accounts = await ethers.getSigners()
+
+            for (let i = 1; i < 6; i++) {
+                const fundMeConnectedContract = await fundMe.connect(
+                    accounts[i]
+                )
+
+                await fundMeConnectedContract.fund({ value: sendValue })
+            }
+
+            const fundMeAddress = await fundMe.getAddress()
+
+            const startingFundMeBalance =
+                await ethers.provider.getBalance(fundMeAddress)
+
+            const startingDeployerBalance = await ethers.provider.getBalance(
+                deployer.address
+            )
+
+            const transactionResponse = await fundMe.cheaperWithdraw()
+            const transactionReceipt = (await transactionResponse.wait(
+                1
+            )) as ContractTransactionReceipt
+
+            const { gasUsed, gasPrice } = transactionReceipt
+
+            const gasCost = gasUsed * gasPrice
+
+            const endingFundMeBalance =
+                await ethers.provider.getBalance(fundMeAddress)
+            const endingDeployerBalance = await ethers.provider.getBalance(
+                deployer.address
+            )
+
+            assert.equal(endingFundMeBalance.toString(), '0')
+            assert.equal(
+                startingFundMeBalance + startingDeployerBalance,
+                endingDeployerBalance + gasCost
+            )
+
+            await expect(fundMe.s_funders(0)).to.be.reverted
+
+            for (let i = 1; i < 6; i++) {
+                assert.equal(
+                    (
+                        await fundMe.s_addressToAmountFunded(
+                            accounts[i].address
+                        )
+                    ).toString(),
+                    '0'
+                )
+            }
         })
     })
 })
